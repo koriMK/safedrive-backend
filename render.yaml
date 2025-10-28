@@ -15,9 +15,8 @@ services:
         fromDatabase:
           name: safedrive-db
           property: connectionString
-  - type: pserv
-    name: safedrive-db
-    env: postgresql
-    plan: free
+
+databases:
+  - name: safedrive-db
     databaseName: safedrive
     user: safedrive_user
