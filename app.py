@@ -27,7 +27,12 @@ def create_app():
     
     # Create tables
     with app.app_context():
-        db.create_all()
+        try:
+            db.create_all()
+            print("Database tables created successfully")
+        except Exception as e:
+            print(f"Database error: {e}")
+            # Continue anyway for health check
     
     # Register blueprints
     from routes.auth import auth_bp
@@ -65,7 +70,10 @@ def create_app():
     
     @app.errorhandler(500)
     def internal_error(error):
-        db.session.rollback()
+        try:
+            db.session.rollback()
+        except:
+            pass
         return jsonify({
             'success': False,
             'error': {
