@@ -29,10 +29,8 @@ def create_app():
     with app.app_context():
         try:
             db.create_all()
-            print("Database tables created successfully")
-        except Exception as e:
-            print(f"Database error: {e}")
-            # Continue anyway for health check
+        except Exception:
+            pass
     
     # Register blueprints
     from routes.auth import auth_bp

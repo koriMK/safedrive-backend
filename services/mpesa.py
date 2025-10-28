@@ -19,14 +19,13 @@ class MpesaService:
             encoded_credentials = base64.b64encode(credentials.encode()).decode()
             
             headers = {"Authorization": f"Basic {encoded_credentials}"}
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=headers, timeout=10)
             
             if response.status_code == 200:
                 return response.json().get("access_token")
             return None
                 
-        except Exception as e:
-            print(f"Error getting access token: {str(e)}")
+        except Exception:
             return None
     
     def generate_password(self, timestamp):
@@ -71,10 +70,7 @@ class MpesaService:
                 "TransactionDesc": transaction_desc
             }
             
-            print(f"STK Push payload: {payload}")
-            response = requests.post(url, json=payload, headers=headers)
-            print(f"STK Push response status: {response.status_code}")
-            print(f"STK Push response: {response.text}")
+            response = requests.post(url, json=payload, headers=headers, timeout=30)
             
             if response.status_code == 200:
                 result = response.json()

@@ -41,8 +41,7 @@ def mpesa_callback():
         
         return jsonify({'ResultCode': 0, 'ResultDesc': 'Success'}), 200
         
-    except Exception as e:
-        print(f'Callback error: {str(e)}')
+    except Exception:
         return jsonify({'ResultCode': 1, 'ResultDesc': 'Failed'}), 500
 
 @payments_bp.route('/initiate', methods=['POST'])
@@ -79,8 +78,6 @@ def initiate_payment():
         
         # Initialize M-Pesa service and initiate STK Push
         mpesa = MpesaService()
-        print(f"Initiating payment for trip {trip_id}, amount {amount}, phone {phone}")
-        
         stk_result = mpesa.stk_push(
             phone_number=phone,
             amount=amount,
@@ -88,11 +85,8 @@ def initiate_payment():
             transaction_desc=f'Payment for trip'
         )
         
-        print(f"STK Push result: {stk_result}")
-        
         if not stk_result.get('success'):
             error_msg = stk_result.get('error', 'Unknown M-Pesa error')
-            print(f"M-Pesa error: {error_msg}")
             return jsonify({
                 'success': False,
                 'error': {
