@@ -81,7 +81,6 @@ def create_trip():
         # If notifyDrivers flag is set, find nearby online drivers
         if data.get('notifyDrivers'):
             online_drivers = Driver.query.filter_by(is_online=True, status='approved').all()
-            print(f"Found {len(online_drivers)} online drivers for trip {trip.id}")
         
         return jsonify({
             'success': True,
