@@ -71,19 +71,29 @@ class MpesaService:
                 "TransactionDesc": transaction_desc
             }
             
+            print(f"STK Push payload: {payload}")
             response = requests.post(url, json=payload, headers=headers)
+            print(f"STK Push response status: {response.status_code}")
+            print(f"STK Push response: {response.text}")
             
             if response.status_code == 200:
                 result = response.json()
-                return {
-                    "success": True,
-                    "checkout_request_id": result.get("CheckoutRequestID"),
-                    "merchant_request_id": result.get("MerchantRequestID"),
-                    "response_code": result.get("ResponseCode"),
-                    "response_description": result.get("ResponseDescription")
-                }
+                if result.get("ResponseCode") == "0":
+                    return {
+                        "success": True,
+                        "checkout_request_id": result.get("CheckoutRequestID"),
+                        "merchant_request_id": result.get("MerchantRequestID"),
+                        "response_code": result.get("ResponseCode"),
+                        "response_description": result.get("ResponseDescription")
+                    }
+                else:
+                    return {"success": False, "error": result.get("errorMessage", result)}
             else:
-                return {"success": False, "error": response.json()}
+                try:
+                    error_data = response.json()
+                except:
+                    error_data = response.text
+                return {"success": False, "error": error_data}
                 
         except Exception as e:
             return {"success": False, "error": str(e)}

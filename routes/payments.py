@@ -79,19 +79,25 @@ def initiate_payment():
         
         # Initialize M-Pesa service and initiate STK Push
         mpesa = MpesaService()
+        print(f"Initiating payment for trip {trip_id}, amount {amount}, phone {phone}")
+        
         stk_result = mpesa.stk_push(
             phone_number=phone,
             amount=amount,
             account_reference=f'Trip{trip_id}',
-            transaction_desc=f'Payment for trip from {trip.pickup_address} to {trip.dropoff_address}'
+            transaction_desc=f'Payment for trip'
         )
         
-        if not stk_result['success']:
+        print(f"STK Push result: {stk_result}")
+        
+        if not stk_result.get('success'):
+            error_msg = stk_result.get('error', 'Unknown M-Pesa error')
+            print(f"M-Pesa error: {error_msg}")
             return jsonify({
                 'success': False,
                 'error': {
                     'code': 'MPESA_FAILED',
-                    'message': f'M-Pesa payment failed: {stk_result.get("error")}'
+                    'message': f'M-Pesa payment failed: {error_msg}'
                 }
             }), 400
         
