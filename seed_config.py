@@ -25,28 +25,37 @@ def seed_config():
     ]
     
     for key, value, description in configs:
-        existing = Config.query.filter_by(key=key).first()
-        if not existing:
-            config = Config(key=key, value=value, description=description)
-            db.session.add(config)
+        try:
+            existing = Config.query.filter_by(key=key).first()
+            if not existing:
+                config = Config(key=key, value=value, description=description)
+                db.session.add(config)
+        except Exception:
+            continue
     
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
 
 def seed_admin_user():
     """Create default admin user"""
     admin_email = 'admin@safedrive.com'
     
-    existing_admin = User.query.filter_by(email=admin_email).first()
-    if not existing_admin:
-        admin = User(
-            email=admin_email,
-            name='System Administrator',
-            phone=None,
-            role='admin'
-        )
-        admin.set_password('admin123')
-        db.session.add(admin)
-        db.session.commit()
+    try:
+        existing_admin = User.query.filter_by(email=admin_email).first()
+        if not existing_admin:
+            admin = User(
+                email=admin_email,
+                name='System Administrator',
+                phone=None,
+                role='admin'
+            )
+            admin.set_password('admin123')
+            db.session.add(admin)
+            db.session.commit()
+    except Exception:
+        db.session.rollback()
 
 def seed_sample_drivers():
     """Create sample approved drivers"""
@@ -78,37 +87,45 @@ def seed_sample_drivers():
     ]
     
     for driver_data in sample_drivers:
-        existing_user = User.query.filter_by(email=driver_data['email']).first()
-        if not existing_user:
-            # Create user
-            user = User(
-                email=driver_data['email'],
-                name=driver_data['name'],
-                phone=driver_data['phone'],
-                role='driver'
-            )
-            user.set_password('driver123')
-            db.session.add(user)
-            db.session.flush()
-            
-            # Create driver profile
-            driver = Driver(
-                user_id=user.id,
-                vehicle_make=driver_data['vehicle']['make'],
-                vehicle_model=driver_data['vehicle']['model'],
-                vehicle_year=driver_data['vehicle']['year'],
-                vehicle_plate=driver_data['vehicle']['plate'],
-                vehicle_color=driver_data['vehicle']['color'],
-                status='approved',
-                is_online=True
-            )
-            db.session.add(driver)
+        try:
+            existing_user = User.query.filter_by(email=driver_data['email']).first()
+            if not existing_user:
+                # Create user
+                user = User(
+                    email=driver_data['email'],
+                    name=driver_data['name'],
+                    phone=driver_data['phone'],
+                    role='driver'
+                )
+                user.set_password('driver123')
+                db.session.add(user)
+                db.session.flush()
+                
+                # Create driver profile
+                driver = Driver(
+                    user_id=user.id,
+                    vehicle_make=driver_data['vehicle']['make'],
+                    vehicle_model=driver_data['vehicle']['model'],
+                    vehicle_year=driver_data['vehicle']['year'],
+                    vehicle_plate=driver_data['vehicle']['plate'],
+                    vehicle_color=driver_data['vehicle']['color'],
+                    status='approved',
+                    is_online=True
+                )
+                db.session.add(driver)
+        except Exception:
+            continue
     
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
 
 def run_seeds():
     """Run all seed functions"""
-    seed_config()
-    seed_admin_user()
-    seed_sample_drivers()
-    print("Database seeded successfully!")
+    try:
+        seed_config()
+        seed_admin_user()
+        seed_sample_drivers()
+    except Exception:
+        pass

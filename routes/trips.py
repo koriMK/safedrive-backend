@@ -52,13 +52,17 @@ def create_trip():
         )
         
         # Calculate fare using config
-        from models import Config
-        BASE_FARE = float(Config.get_value('TRIP_BASE_FARE', '200'))
-        RATE_PER_KM = float(Config.get_value('TRIP_RATE_PER_KM', '50'))
-        fare = BASE_FARE + (distance * RATE_PER_KM)
+        try:
+            from models import Config
+            BASE_FARE = float(Config.get_value('TRIP_BASE_FARE', '200'))
+            RATE_PER_KM = float(Config.get_value('TRIP_RATE_PER_KM', '50'))
+            AVERAGE_SPEED = float(Config.get_value('TRIP_AVERAGE_SPEED', '30'))
+        except:
+            BASE_FARE = 200
+            RATE_PER_KM = 50
+            AVERAGE_SPEED = 30
         
-        # Estimate duration using config
-        AVERAGE_SPEED = float(Config.get_value('TRIP_AVERAGE_SPEED', '30'))  # km/h
+        fare = BASE_FARE + (distance * RATE_PER_KM)
         duration = int((distance / AVERAGE_SPEED) * 60)  # minutes
         
         # Create trip

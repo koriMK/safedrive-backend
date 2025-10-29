@@ -30,8 +30,11 @@ def create_app():
         try:
             db.create_all()
             # Run seeds on first startup
-            from seed_config import run_seeds
-            run_seeds()
+            try:
+                from seed_config import run_seeds
+                run_seeds()
+            except Exception:
+                pass  # Seeds may already exist
         except Exception:
             pass
     
