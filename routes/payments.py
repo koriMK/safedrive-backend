@@ -23,19 +23,23 @@ def mpesa_callback():
             
             if payment:
                 if result_code == 0:  # Success
-                    payment.status = 'paid'
-                    callback_metadata = data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', [])
-                    
-                    for item in callback_metadata:
-                        if item.get('Name') == 'MpesaReceiptNumber':
-                            payment.mpesa_receipt_number = item.get('Value')
-                    
-                    # Update trip payment status
-                    trip = Trip.query.get(payment.trip_id)
-                    if trip:
-                        trip.payment_status = 'paid'
+                    # Safety: Only process if not already paid
+                    if payment.status != 'paid':
+                        payment.status = 'paid'
+                        callback_metadata = data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', [])
+                        
+                        for item in callback_metadata:
+                            if item.get('Name') == 'MpesaReceiptNumber':
+                                payment.mpesa_receipt_number = item.get('Value')
+                        
+                        # Update trip payment status safely
+                        trip = Trip.query.get(payment.trip_id)
+                        if trip and trip.payment_status != 'paid':
+                            trip.payment_status = 'paid'
                 else:
-                    payment.status = 'failed'
+                    # Safety: Only mark as failed if currently pending
+                    if payment.status == 'pending':
+                        payment.status = 'failed'
                 
                 db.session.commit()
         
@@ -76,6 +80,37 @@ def initiate_payment():
                 }
             }), 404
         
+        # Safety check: Prevent duplicate payments
+        existing_payment = Payment.query.filter_by(trip_id=trip_id, status='paid').first()
+        if existing_payment:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'ALREADY_PAID',
+                    'message': 'Trip has already been paid for'
+                }
+            }), 400
+        
+        # Safety check: Verify trip is completed or in progress
+        if trip.status not in ['accepted', 'driving', 'completed']:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'INVALID_TRIP_STATUS',
+                    'message': 'Cannot pay for trip that is not accepted or completed'
+                }
+            }), 400
+        
+        # Safety check: Verify amount matches trip fare
+        if float(amount) != float(trip.fare):
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'AMOUNT_MISMATCH',
+                    'message': f'Payment amount {amount} does not match trip fare {trip.fare}'
+                }
+            }), 400
+        
         # Initialize M-Pesa service and initiate STK Push
         mpesa = MpesaService()
         stk_result = mpesa.stk_push(
@@ -92,6 +127,17 @@ def initiate_payment():
                 'error': {
                     'code': 'MPESA_FAILED',
                     'message': f'M-Pesa payment failed: {error_msg}'
+                }
+            }), 400
+        
+        # Safety check: Prevent multiple pending payments for same trip
+        pending_payment = Payment.query.filter_by(trip_id=trip_id, status='pending').first()
+        if pending_payment:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'PAYMENT_IN_PROGRESS',
+                    'message': 'Payment already in progress for this trip'
                 }
             }), 400
         
@@ -154,15 +200,26 @@ def check_payment_status(payment_id):
                 result_code = status_data.get('ResultCode')
                 
                 if result_code == '0':  # Success
-                    payment.status = 'paid'
-                    payment.mpesa_receipt_number = status_data.get('MpesaReceiptNumber', f'MPE{uuid.uuid4().hex[:8].upper()}')
-                    
-                    # Update trip payment status
-                    trip = Trip.query.get(payment.trip_id)
-                    if trip:
-                        trip.payment_status = 'paid'
-                    
-                    db.session.commit()
+                    # Safety check: Verify payment hasn't been processed already
+                    if payment.status != 'paid':
+                        payment.status = 'paid'
+                        payment.mpesa_receipt_number = status_data.get('MpesaReceiptNumber', f'MPE{uuid.uuid4().hex[:8].upper()}')
+                        
+                        # Update trip payment status safely
+                        trip = Trip.query.get(payment.trip_id)
+                        if trip and trip.payment_status != 'paid':
+                            trip.payment_status = 'paid'
+                            
+                            # Safety: Update driver earnings only once
+                            if trip.driver_id and trip.status == 'completed':
+                                driver = Driver.query.filter_by(user_id=trip.driver_id).first()
+                                if driver:
+                                    # Check if earnings already added
+                                    if not hasattr(trip, '_earnings_added'):
+                                        driver.total_earnings += trip.fare
+                                        trip._earnings_added = True
+                        
+                        db.session.commit()
                 elif result_code in ['1032', '1037']:  # Cancelled or timeout
                     payment.status = 'failed'
                     db.session.commit()
