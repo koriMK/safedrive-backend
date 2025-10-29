@@ -250,8 +250,13 @@ def get_online_users():
                 }
             }), 403
         
-        # Get online users (active in last 5 minutes)
-        cutoff_time = datetime.utcnow() - timedelta(minutes=5)
+        # Get online users (configurable timeout)
+        try:
+            from models import Config
+            online_timeout = int(Config.get_value('ONLINE_TIMEOUT_MINUTES', '5'))
+        except:
+            online_timeout = 5
+        cutoff_time = datetime.utcnow() - timedelta(minutes=online_timeout)
         
         online_drivers = db.session.query(User).join(Driver).filter(
             User.role == 'driver',

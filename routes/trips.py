@@ -8,7 +8,11 @@ trips_bp = Blueprint('trips', __name__)
 
 def calculate_distance(lat1, lon1, lat2, lon2):
     """Calculate distance using Haversine formula"""
-    R = 6371  # Earth's radius in km
+    try:
+        from models import Config
+        R = float(Config.get_value('EARTH_RADIUS_KM', '6371'))
+    except:
+        R = 6371  # Earth's radius in km
     dlat = math.radians(lat2 - lat1)
     dlon = math.radians(lon2 - lon1)
     a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon/2)**2
@@ -231,7 +235,13 @@ def complete_trip(trip_id):
         
         trip.status = 'completed'
         trip.completed_at = datetime.utcnow()
-        trip.payment_status = 'paid'  # Mock payment success
+        # Update payment status based on config
+        try:
+            from models import Config
+            auto_payment = Config.get_value('AUTO_COMPLETE_PAYMENT', 'true').lower() == 'true'
+            trip.payment_status = 'paid' if auto_payment else 'pending'
+        except:
+            trip.payment_status = 'paid'  # Default behavior
         
         # Update driver stats
         driver = Driver.query.filter_by(user_id=user_id).first()

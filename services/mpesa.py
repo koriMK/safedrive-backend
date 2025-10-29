@@ -66,7 +66,7 @@ class MpesaService:
                 "PartyA": phone_number,
                 "PartyB": self.business_shortcode,
                 "PhoneNumber": phone_number,
-                "CallBackURL": "https://safedrive-backend-d579.onrender.com/api/v1/payments/callback",
+                "CallBackURL": Config.get_value('MPESA_CALLBACK_URL', 'https://safedrive-backend-d579.onrender.com/api/v1/payments/callback'),
                 "AccountReference": account_reference,
                 "TransactionDesc": transaction_desc
             }

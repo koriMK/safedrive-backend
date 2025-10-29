@@ -73,12 +73,18 @@ def register():
             }), 400
         
         # Validate password strength
-        if len(password) < 8:
+        try:
+            from models import Config
+            min_password_length = int(Config.get_value('MIN_PASSWORD_LENGTH', '8'))
+        except:
+            min_password_length = 8
+            
+        if len(password) < min_password_length:
             return jsonify({
                 'success': False,
                 'error': {
                     'code': 'WEAK_PASSWORD',
-                    'message': 'Password must be at least 8 characters'
+                    'message': f'Password must be at least {min_password_length} characters'
                 }
             }), 400
         

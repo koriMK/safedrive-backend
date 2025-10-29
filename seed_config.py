@@ -22,6 +22,13 @@ def seed_config():
         ('APP_VERSION', '1.0.0', 'Application version'),
         ('SUPPORT_EMAIL', 'support@safedrive.com', 'Support email'),
         ('SUPPORT_PHONE', '+254700000000', 'Support phone number'),
+        
+        # System Configuration
+        ('EARTH_RADIUS_KM', '6371', 'Earth radius for distance calculations'),
+        ('MIN_PASSWORD_LENGTH', '8', 'Minimum password length'),
+        ('AUTO_COMPLETE_PAYMENT', 'true', 'Auto-complete payment on trip completion'),
+        ('ONLINE_TIMEOUT_MINUTES', '5', 'Minutes to consider user offline'),
+        ('MPESA_CALLBACK_URL', 'https://safedrive-backend-d579.onrender.com/api/v1/payments/callback', 'M-Pesa callback URL'),
     ]
     
     for key, value, description in configs:
