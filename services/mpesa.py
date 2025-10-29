@@ -1,14 +1,15 @@
 import requests
 import base64
 from datetime import datetime
+from models import Config
 
 class MpesaService:
     def __init__(self):
-        self.consumer_key = "UnDvUCktXcQDyRScx0uAnJlA7rboMWhSnAxvhSOYQiX8QU0t"
-        self.consumer_secret = "eP7nwvhM3OwL0nVhRlOCsGnRawPi32BkENmT33NygDpdYdq5sy1WyAshdCnidCkb"
-        self.business_shortcode = "174379"
-        self.passkey = "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919"
-        self.base_url = "https://sandbox.safaricom.co.ke"
+        self.consumer_key = Config.get_value('MPESA_CONSUMER_KEY', 'UnDvUCktXcQDyRScx0uAnJlA7rboMWhSnAxvhSOYQiX8QU0t')
+        self.consumer_secret = Config.get_value('MPESA_CONSUMER_SECRET', 'eP7nwvhM3OwL0nVhRlOCsGnRawPi32BkENmT33NygDpdYdq5sy1WyAshdCnidCkb')
+        self.business_shortcode = Config.get_value('MPESA_BUSINESS_SHORTCODE', '174379')
+        self.passkey = Config.get_value('MPESA_PASSKEY', 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919')
+        self.base_url = Config.get_value('MPESA_BASE_URL', 'https://sandbox.safaricom.co.ke')
         
     def get_access_token(self):
         """Get OAuth access token"""

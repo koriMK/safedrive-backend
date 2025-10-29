@@ -25,10 +25,13 @@ def create_app():
          allow_headers=["Content-Type", "Authorization"],
          methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
     
-    # Create tables
+    # Create tables and seed data
     with app.app_context():
         try:
             db.create_all()
+            # Run seeds on first startup
+            from seed_config import run_seeds
+            run_seeds()
         except Exception:
             pass
     
