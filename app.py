@@ -25,16 +25,15 @@ def create_app():
          allow_headers=["Content-Type", "Authorization"],
          methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
     
-    # Create tables and seed data
+    # Create tables
     with app.app_context():
         try:
             db.create_all()
-            # Run seeds on first startup
-            try:
+            # Only seed if config table is empty (first run)
+            from models import Config
+            if Config.query.count() == 0:
                 from seed_config import run_seeds
                 run_seeds()
-            except Exception:
-                pass  # Seeds may already exist
         except Exception:
             pass
     

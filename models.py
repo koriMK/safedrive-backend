@@ -215,8 +215,11 @@ class Config(db.Model):
     
     @staticmethod
     def get_value(key, default=None):
-        config = Config.query.filter_by(key=key).first()
-        return config.value if config else default
+        try:
+            config = Config.query.filter_by(key=key).first()
+            return config.value if config else default
+        except:
+            return default
     
     @staticmethod
     def set_value(key, value, description=None):
