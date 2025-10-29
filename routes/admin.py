@@ -235,3 +235,53 @@ def get_all_payments():
                 'message': str(e)
             }
         }), 500
+
+@admin_bp.route('/users/online', methods=['GET'])
+@jwt_required()
+def get_online_users():
+    """Get all online users (drivers and passengers)"""
+    try:
+        if not admin_required():
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'ADMIN_REQUIRED',
+                    'message': 'Admin access required'
+                }
+            }), 403
+        
+        # Get online users (active in last 5 minutes)
+        cutoff_time = datetime.utcnow() - timedelta(minutes=5)
+        
+        online_drivers = db.session.query(User).join(Driver).filter(
+            User.role == 'driver',
+            User.last_seen >= cutoff_time,
+            Driver.status == 'approved'
+        ).all()
+        
+        online_passengers = User.query.filter(
+            User.role == 'passenger',
+            User.last_seen >= cutoff_time
+        ).all()
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'onlineDrivers': [user.to_dict() for user in online_drivers],
+                'onlinePassengers': [user.to_dict() for user in online_passengers],
+                'summary': {
+                    'totalOnlineDrivers': len(online_drivers),
+                    'totalOnlinePassengers': len(online_passengers),
+                    'totalOnlineUsers': len(online_drivers) + len(online_passengers)
+                }
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'ONLINE_USERS_FAILED',
+                'message': str(e)
+            }
+        }), 500

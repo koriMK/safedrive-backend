@@ -205,6 +205,11 @@ def get_current_user():
                 }
             }), 404
         
+        # Update online status and last seen
+        user.is_online = True
+        user.last_seen = datetime.utcnow()
+        db.session.commit()
+        
         return jsonify({
             'success': True,
             'data': user.to_dict()
