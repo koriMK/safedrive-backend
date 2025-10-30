@@ -377,3 +377,64 @@ def get_payments():
                 'message': str(e)
             }
         }), 500
+
+@payments_bp.route('/<payment_id>', methods=['GET'])
+@jwt_required()
+def get_payment(payment_id):
+    """
+    Get specific payment
+    ---
+    tags:
+      - Payments
+    security:
+      - Bearer: []
+    parameters:
+      - name: payment_id
+        in: path
+        type: string
+        required: true
+        description: Payment ID
+    responses:
+      200:
+        description: Payment retrieved successfully
+      404:
+        description: Payment not found
+    """
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        payment = Payment.query.get(payment_id)
+        if not payment:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'NOT_FOUND',
+                    'message': 'Payment not found'
+                }
+            }), 404
+        
+        # Check authorization
+        trip = Trip.query.get(payment.trip_id)
+        if user.role != 'admin' and trip.passenger_id != user_id and trip.driver_id != user_id:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'UNAUTHORIZED',
+                    'message': 'Unauthorized to view this payment'
+                }
+            }), 403
+        
+        return jsonify({
+            'success': True,
+            'data': payment.to_dict()
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'FETCH_FAILED',
+                'message': str(e)
+            }
+        }), 500

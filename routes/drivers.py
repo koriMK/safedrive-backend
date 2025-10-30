@@ -635,3 +635,129 @@ def request_payout():
                 'message': str(e)
             }
         }), 500
+
+@drivers_bp.route('/<driver_id>', methods=['GET'])
+@jwt_required()
+def get_driver(driver_id):
+    """
+    Get specific driver (admin only)
+    ---
+    tags:
+      - Drivers
+    security:
+      - Bearer: []
+    parameters:
+      - name: driver_id
+        in: path
+        type: string
+        required: true
+        description: Driver ID
+    responses:
+      200:
+        description: Driver retrieved successfully
+      403:
+        description: Admin access required
+      404:
+        description: Driver not found
+    """
+    try:
+        current_user_id = get_jwt_identity()
+        current_user = User.query.get(current_user_id)
+        
+        if current_user.role != 'admin':
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'ADMIN_REQUIRED',
+                    'message': 'Admin access required'
+                }
+            }), 403
+        
+        driver = Driver.query.get(driver_id)
+        if not driver:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'NOT_FOUND',
+                    'message': 'Driver not found'
+                }
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'data': driver.to_dict()
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'FETCH_FAILED',
+                'message': str(e)
+            }
+        }), 500
+
+@drivers_bp.route('/<driver_id>', methods=['DELETE'])
+@jwt_required()
+def delete_driver(driver_id):
+    """
+    Delete driver (admin only)
+    ---
+    tags:
+      - Drivers
+    security:
+      - Bearer: []
+    parameters:
+      - name: driver_id
+        in: path
+        type: string
+        required: true
+        description: Driver ID
+    responses:
+      200:
+        description: Driver deleted successfully
+      403:
+        description: Admin access required
+      404:
+        description: Driver not found
+    """
+    try:
+        current_user_id = get_jwt_identity()
+        current_user = User.query.get(current_user_id)
+        
+        if current_user.role != 'admin':
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'ADMIN_REQUIRED',
+                    'message': 'Admin access required'
+                }
+            }), 403
+        
+        driver = Driver.query.get(driver_id)
+        if not driver:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'NOT_FOUND',
+                    'message': 'Driver not found'
+                }
+            }), 404
+        
+        db.session.delete(driver)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Driver deleted'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'DELETE_FAILED',
+                'message': str(e)
+            }
+        }), 500

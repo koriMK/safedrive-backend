@@ -544,3 +544,216 @@ def get_available_trips():
                 'message': str(e)
             }
         }), 500
+
+@trips_bp.route('/<trip_id>', methods=['GET'])
+@jwt_required()
+def get_trip(trip_id):
+    """
+    Get specific trip
+    ---
+    tags:
+      - Trips
+    security:
+      - Bearer: []
+    parameters:
+      - name: trip_id
+        in: path
+        type: string
+        required: true
+        description: Trip ID
+    responses:
+      200:
+        description: Trip retrieved successfully
+      404:
+        description: Trip not found
+    """
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        trip = Trip.query.get(trip_id)
+        if not trip:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'NOT_FOUND',
+                    'message': 'Trip not found'
+                }
+            }), 404
+        
+        # Check authorization
+        if user.role not in ['admin'] and trip.passenger_id != user_id and trip.driver_id != user_id:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'UNAUTHORIZED',
+                    'message': 'Unauthorized to view this trip'
+                }
+            }), 403
+        
+        return jsonify({
+            'success': True,
+            'data': trip.to_dict()
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'FETCH_FAILED',
+                'message': str(e)
+            }
+        }), 500
+
+@trips_bp.route('/<trip_id>', methods=['PUT'])
+@jwt_required()
+def update_trip(trip_id):
+    """
+    Update trip
+    ---
+    tags:
+      - Trips
+    security:
+      - Bearer: []
+    parameters:
+      - name: trip_id
+        in: path
+        type: string
+        required: true
+        description: Trip ID
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              enum: ["requested", "accepted", "driving", "completed", "cancelled"]
+              example: "driving"
+    responses:
+      200:
+        description: Trip updated successfully
+      404:
+        description: Trip not found
+    """
+    try:
+        user_id = get_jwt_identity()
+        trip = Trip.query.get(trip_id)
+        
+        if not trip:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'NOT_FOUND',
+                    'message': 'Trip not found'
+                }
+            }), 404
+        
+        # Only driver can update trip status
+        if trip.driver_id != user_id:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'UNAUTHORIZED',
+                    'message': 'Only assigned driver can update trip'
+                }
+            }), 403
+        
+        data = request.json
+        if 'status' in data:
+            trip.status = data['status']
+            if data['status'] == 'driving':
+                trip.started_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Trip updated',
+            'data': trip.to_dict()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'UPDATE_FAILED',
+                'message': str(e)
+            }
+        }), 500
+
+@trips_bp.route('/<trip_id>', methods=['DELETE'])
+@jwt_required()
+def delete_trip(trip_id):
+    """
+    Delete trip (cancel)
+    ---
+    tags:
+      - Trips
+    security:
+      - Bearer: []
+    parameters:
+      - name: trip_id
+        in: path
+        type: string
+        required: true
+        description: Trip ID
+    responses:
+      200:
+        description: Trip cancelled successfully
+      404:
+        description: Trip not found
+    """
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        trip = Trip.query.get(trip_id)
+        
+        if not trip:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'NOT_FOUND',
+                    'message': 'Trip not found'
+                }
+            }), 404
+        
+        # Only passenger, assigned driver, or admin can cancel
+        if user.role != 'admin' and trip.passenger_id != user_id and trip.driver_id != user_id:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'UNAUTHORIZED',
+                    'message': 'Unauthorized to cancel this trip'
+                }
+            }), 403
+        
+        # Can only cancel if not completed
+        if trip.status == 'completed':
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'INVALID_STATUS',
+                    'message': 'Cannot cancel completed trip'
+                }
+            }), 400
+        
+        trip.status = 'cancelled'
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Trip cancelled'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'DELETE_FAILED',
+                'message': str(e)
+            }
+        }), 500

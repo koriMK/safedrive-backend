@@ -129,3 +129,174 @@ def update_user_profile():
                 'message': str(e)
             }
         }), 500
+
+@users_bp.route('', methods=['GET'])
+@jwt_required()
+def get_users():
+    """
+    Get all users (admin only)
+    ---
+    tags:
+      - Users
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Users retrieved successfully
+      403:
+        description: Admin access required
+    """
+    try:
+        current_user_id = get_jwt_identity()
+        current_user = User.query.get(current_user_id)
+        
+        if current_user.role != 'admin':
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'ADMIN_REQUIRED',
+                    'message': 'Admin access required'
+                }
+            }), 403
+        
+        users = User.query.all()
+        
+        return jsonify({
+            'success': True,
+            'data': [user.to_dict() for user in users]
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'FETCH_FAILED',
+                'message': str(e)
+            }
+        }), 500
+
+@users_bp.route('/<user_id>', methods=['GET'])
+@jwt_required()
+def get_user(user_id):
+    """
+    Get specific user (admin only)
+    ---
+    tags:
+      - Users
+    security:
+      - Bearer: []
+    parameters:
+      - name: user_id
+        in: path
+        type: string
+        required: true
+        description: User ID
+    responses:
+      200:
+        description: User retrieved successfully
+      403:
+        description: Admin access required
+      404:
+        description: User not found
+    """
+    try:
+        current_user_id = get_jwt_identity()
+        current_user = User.query.get(current_user_id)
+        
+        if current_user.role != 'admin':
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'ADMIN_REQUIRED',
+                    'message': 'Admin access required'
+                }
+            }), 403
+        
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'NOT_FOUND',
+                    'message': 'User not found'
+                }
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'data': user.to_dict()
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'FETCH_FAILED',
+                'message': str(e)
+            }
+        }), 500
+
+@users_bp.route('/<user_id>', methods=['DELETE'])
+@jwt_required()
+def delete_user(user_id):
+    """
+    Delete user (admin only)
+    ---
+    tags:
+      - Users
+    security:
+      - Bearer: []
+    parameters:
+      - name: user_id
+        in: path
+        type: string
+        required: true
+        description: User ID
+    responses:
+      200:
+        description: User deleted successfully
+      403:
+        description: Admin access required
+      404:
+        description: User not found
+    """
+    try:
+        current_user_id = get_jwt_identity()
+        current_user = User.query.get(current_user_id)
+        
+        if current_user.role != 'admin':
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'ADMIN_REQUIRED',
+                    'message': 'Admin access required'
+                }
+            }), 403
+        
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'NOT_FOUND',
+                    'message': 'User not found'
+                }
+            }), 404
+        
+        db.session.delete(user)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'User deleted'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'DELETE_FAILED',
+                'message': str(e)
+            }
+        }), 500

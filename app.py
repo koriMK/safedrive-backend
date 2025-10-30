@@ -120,6 +120,8 @@ def create_app():
     from routes.drivers import drivers_bp
     from routes.payments import payments_bp
     from routes.admin import admin_bp
+    from routes.notifications import notifications_bp
+    from routes.ratings import ratings_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/v1/auth')
     app.register_blueprint(users_bp, url_prefix='/api/v1/users')
@@ -127,6 +129,8 @@ def create_app():
     app.register_blueprint(drivers_bp, url_prefix='/api/v1/drivers')
     app.register_blueprint(payments_bp, url_prefix='/api/v1/payments')
     app.register_blueprint(admin_bp, url_prefix='/api/v1/admin')
+    app.register_blueprint(notifications_bp, url_prefix='/api/v1/notifications')
+    app.register_blueprint(ratings_bp, url_prefix='/api/v1/ratings')
     
     # Migration endpoint
     from routes.migrate import migrate_bp
