@@ -135,6 +135,15 @@ def create_app():
     # Health check endpoint
     @app.route('/api/v1/health')
     def health_check():
+        """
+        Health check endpoint
+        ---
+        tags:
+          - System
+        responses:
+          200:
+            description: Service is healthy
+        """
         return jsonify({
             'status': 'healthy',
             'version': '1.0.0'
@@ -143,9 +152,19 @@ def create_app():
     # API documentation endpoint
     @app.route('/')
     def api_docs():
+        """
+        API documentation and endpoints overview
+        ---
+        tags:
+          - System
+        responses:
+          200:
+            description: API information and available endpoints
+        """
         return jsonify({
             'message': 'SafeDrive API v1.0',
             'documentation': 'https://github.com/koriMK/safedrive-backend/blob/main/API_DOCUMENTATION.md',
+            'swagger_ui': '/docs/',
             'base_url': '/api/v1',
             'endpoints': {
                 'auth': {

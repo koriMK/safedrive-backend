@@ -168,7 +168,35 @@ def create_trip():
 @trips_bp.route('', methods=['GET'])
 @jwt_required()
 def get_trips():
-    """Get user's trips"""
+    """
+    Get user's trips
+    ---
+    tags:
+      - Trips
+    security:
+      - Bearer: []
+    parameters:
+      - name: page
+        in: query
+        type: integer
+        default: 1
+        description: Page number
+      - name: limit
+        in: query
+        type: integer
+        default: 10
+        description: Items per page
+      - name: status
+        in: query
+        type: string
+        enum: ["requested", "accepted", "driving", "completed", "cancelled"]
+        description: Filter by trip status
+    responses:
+      200:
+        description: Trips retrieved successfully
+      500:
+        description: Server error
+    """
     try:
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
@@ -220,7 +248,29 @@ def get_trips():
 @trips_bp.route('/<trip_id>/accept', methods=['PUT'])
 @jwt_required()
 def accept_trip(trip_id):
-    """Driver accepts trip"""
+    """
+    Driver accepts trip
+    ---
+    tags:
+      - Trips
+    security:
+      - Bearer: []
+    parameters:
+      - name: trip_id
+        in: path
+        type: string
+        required: true
+        description: Trip ID
+    responses:
+      200:
+        description: Trip accepted successfully
+      400:
+        description: Trip not available
+      403:
+        description: Unauthorized - Only drivers can accept trips
+      404:
+        description: Trip not found
+    """
     try:
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
@@ -280,7 +330,27 @@ def accept_trip(trip_id):
 @trips_bp.route('/<trip_id>/complete', methods=['PUT'])
 @jwt_required()
 def complete_trip(trip_id):
-    """Complete trip"""
+    """
+    Complete trip
+    ---
+    tags:
+      - Trips
+    security:
+      - Bearer: []
+    parameters:
+      - name: trip_id
+        in: path
+        type: string
+        required: true
+        description: Trip ID
+    responses:
+      200:
+        description: Trip completed successfully
+      403:
+        description: Unauthorized
+      404:
+        description: Trip not found
+    """
     try:
         user_id = get_jwt_identity()
         trip = Trip.query.get(trip_id)
@@ -331,7 +401,43 @@ def complete_trip(trip_id):
 @trips_bp.route('/<trip_id>/rate', methods=['POST'])
 @jwt_required()
 def rate_trip(trip_id):
-    """Rate completed trip"""
+    """
+    Rate completed trip
+    ---
+    tags:
+      - Trips
+    security:
+      - Bearer: []
+    parameters:
+      - name: trip_id
+        in: path
+        type: string
+        required: true
+        description: Trip ID
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          required:
+            - rating
+          properties:
+            rating:
+              type: integer
+              minimum: 1
+              maximum: 5
+              example: 5
+            feedback:
+              type: string
+              example: "Great driver, smooth ride!"
+    responses:
+      200:
+        description: Rating submitted successfully
+      400:
+        description: Invalid rating value
+      403:
+        description: Unauthorized
+    """
     try:
         user_id = get_jwt_identity()
         trip = Trip.query.get(trip_id)
@@ -394,7 +500,19 @@ def rate_trip(trip_id):
 @trips_bp.route('/available', methods=['GET'])
 @jwt_required()
 def get_available_trips():
-    """Get available trips for drivers"""
+    """
+    Get available trips for drivers
+    ---
+    tags:
+      - Trips
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Available trips retrieved successfully
+      403:
+        description: Unauthorized - Only drivers can view available trips
+    """
     try:
         user_id = get_jwt_identity()
         user = User.query.get(user_id)

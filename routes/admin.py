@@ -16,7 +16,19 @@ def admin_required():
 @admin_bp.route('/stats', methods=['GET'])
 @jwt_required()
 def get_dashboard_stats():
-    """Get admin dashboard statistics"""
+    """
+    Get admin dashboard statistics
+    ---
+    tags:
+      - Admin
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Dashboard statistics retrieved successfully
+      403:
+        description: Admin access required
+    """
     try:
         if not admin_required():
             return jsonify({
@@ -99,7 +111,19 @@ def get_dashboard_stats():
 @admin_bp.route('/drivers', methods=['GET'])
 @jwt_required()
 def get_all_drivers():
-    """Get all drivers"""
+    """
+    Get all drivers
+    ---
+    tags:
+      - Admin
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Drivers retrieved successfully
+      403:
+        description: Admin access required
+    """
     try:
         if not admin_required():
             return jsonify({
@@ -131,7 +155,27 @@ def get_all_drivers():
 @admin_bp.route('/drivers/<driver_id>/approve', methods=['PUT'])
 @jwt_required()
 def approve_driver(driver_id):
-    """Approve driver"""
+    """
+    Approve driver
+    ---
+    tags:
+      - Admin
+    security:
+      - Bearer: []
+    parameters:
+      - name: driver_id
+        in: path
+        type: string
+        required: true
+        description: Driver ID
+    responses:
+      200:
+        description: Driver approved successfully
+      403:
+        description: Admin access required
+      404:
+        description: Driver not found
+    """
     try:
         if not admin_required():
             return jsonify({
@@ -175,7 +219,19 @@ def approve_driver(driver_id):
 @admin_bp.route('/trips', methods=['GET'])
 @jwt_required()
 def get_all_trips():
-    """Get all trips"""
+    """
+    Get all trips
+    ---
+    tags:
+      - Admin
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Trips retrieved successfully
+      403:
+        description: Admin access required
+    """
     try:
         if not admin_required():
             return jsonify({
@@ -207,7 +263,19 @@ def get_all_trips():
 @admin_bp.route('/payments', methods=['GET'])
 @jwt_required()
 def get_all_payments():
-    """Get all payments"""
+    """
+    Get all payments
+    ---
+    tags:
+      - Admin
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Payments retrieved successfully
+      403:
+        description: Admin access required
+    """
     try:
         if not admin_required():
             return jsonify({
@@ -239,7 +307,19 @@ def get_all_payments():
 @admin_bp.route('/users/online', methods=['GET'])
 @jwt_required()
 def get_online_users():
-    """Get all online users (drivers and passengers)"""
+    """
+    Get all online users (drivers and passengers)
+    ---
+    tags:
+      - Admin
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Online users retrieved successfully
+      403:
+        description: Admin access required
+    """
     try:
         if not admin_required():
             return jsonify({

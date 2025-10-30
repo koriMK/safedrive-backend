@@ -18,7 +18,19 @@ def allowed_file(filename):
 @drivers_bp.route('/available-trips', methods=['GET'])
 @jwt_required()
 def get_available_trips():
-    """Get available trips for driver"""
+    """
+    Get available trips for driver
+    ---
+    tags:
+      - Drivers
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Available trips retrieved successfully
+      403:
+        description: Unauthorized - Only drivers can view available trips
+    """
     try:
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
@@ -56,7 +68,33 @@ def get_available_trips():
 @drivers_bp.route('/status', methods=['PUT'])
 @jwt_required()
 def update_driver_status():
-    """Update driver online status"""
+    """
+    Update driver online status
+    ---
+    tags:
+      - Drivers
+    security:
+      - Bearer: []
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          required:
+            - isOnline
+          properties:
+            isOnline:
+              type: boolean
+              example: true
+    responses:
+      200:
+        description: Status updated successfully
+      400:
+        description: Missing required field
+      403:
+        description: Unauthorized - Only drivers can update status
+    """
     try:
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
@@ -113,7 +151,19 @@ def update_driver_status():
 @drivers_bp.route('/profile', methods=['GET'])
 @jwt_required()
 def get_driver_profile():
-    """Get driver profile"""
+    """
+    Get driver profile
+    ---
+    tags:
+      - Drivers
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Driver profile retrieved successfully
+      403:
+        description: Unauthorized - Only drivers can access this endpoint
+    """
     try:
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
@@ -152,7 +202,44 @@ def get_driver_profile():
 @drivers_bp.route('/profile', methods=['PUT'])
 @jwt_required()
 def update_driver_profile():
-    """Update driver profile"""
+    """
+    Update driver profile
+    ---
+    tags:
+      - Drivers
+    security:
+      - Bearer: []
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            vehicle:
+              type: object
+              properties:
+                make:
+                  type: string
+                  example: "Toyota"
+                model:
+                  type: string
+                  example: "Corolla"
+                year:
+                  type: integer
+                  example: 2020
+                plate:
+                  type: string
+                  example: "KCA 123A"
+                color:
+                  type: string
+                  example: "White"
+    responses:
+      200:
+        description: Profile updated successfully
+      403:
+        description: Unauthorized - Only drivers can update profile
+    """
     try:
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
@@ -211,7 +298,35 @@ def update_driver_profile():
 @drivers_bp.route('/upload-document', methods=['POST'])
 @jwt_required()
 def upload_document():
-    """Upload driver document"""
+    """
+    Upload driver document
+    ---
+    tags:
+      - Drivers
+    security:
+      - Bearer: []
+    consumes:
+      - multipart/form-data
+    parameters:
+      - name: file
+        in: formData
+        type: file
+        required: true
+        description: Document file (PDF, PNG, JPG, JPEG)
+      - name: type
+        in: formData
+        type: string
+        required: true
+        enum: ["idCard", "license", "insurance", "logbook"]
+        description: Document type
+    responses:
+      200:
+        description: Document uploaded successfully
+      400:
+        description: Invalid file or missing parameters
+      403:
+        description: Unauthorized - Only drivers can upload documents
+    """
     try:
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
@@ -364,7 +479,19 @@ def upload_document():
 @drivers_bp.route('/earnings', methods=['GET'])
 @jwt_required()
 def get_driver_earnings():
-    """Get driver earnings summary"""
+    """
+    Get driver earnings summary
+    ---
+    tags:
+      - Drivers
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Earnings retrieved successfully
+      403:
+        description: Unauthorized - Only drivers can view earnings
+    """
     try:
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
@@ -429,7 +556,37 @@ def get_driver_earnings():
 @drivers_bp.route('/payout', methods=['POST'])
 @jwt_required()
 def request_payout():
-    """Request driver payout"""
+    """
+    Request driver payout
+    ---
+    tags:
+      - Drivers
+    security:
+      - Bearer: []
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          required:
+            - amount
+            - phone
+          properties:
+            amount:
+              type: number
+              example: 1000
+            phone:
+              type: string
+              example: "+254712345678"
+    responses:
+      200:
+        description: Payout request submitted successfully
+      400:
+        description: Missing required fields
+      403:
+        description: Unauthorized - Only drivers can request payouts
+    """
     try:
         user_id = get_jwt_identity()
         user = User.query.get(user_id)

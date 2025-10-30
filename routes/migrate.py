@@ -6,7 +6,19 @@ migrate_bp = Blueprint('migrate', __name__)
 
 @migrate_bp.route('/migrate-db', methods=['POST'])
 def migrate_database():
-    """Emergency database migration endpoint"""
+    """
+    Emergency database migration endpoint
+    ---
+    tags:
+      - System
+    responses:
+      200:
+        description: Migration completed successfully
+      403:
+        description: Migration only allowed in production
+      500:
+        description: Migration failed
+    """
     try:
         # Only allow in production with specific header
         if os.environ.get('FLASK_ENV') != 'production':

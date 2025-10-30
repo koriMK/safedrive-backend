@@ -12,7 +12,24 @@ payments_bp = Blueprint('payments', __name__)
 
 @payments_bp.route('/callback', methods=['POST'])
 def mpesa_callback():
-    """Handle M-Pesa callback"""
+    """
+    Handle M-Pesa callback
+    ---
+    tags:
+      - Payments
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          description: M-Pesa callback data
+    responses:
+      200:
+        description: Callback processed successfully
+      500:
+        description: Callback processing failed
+    """
     try:
         data = request.json
         checkout_request_id = data.get('Body', {}).get('stkCallback', {}).get('CheckoutRequestID')
@@ -51,7 +68,41 @@ def mpesa_callback():
 @payments_bp.route('/initiate', methods=['POST'])
 @jwt_required()
 def initiate_payment():
-    """Initiate M-Pesa payment"""
+    """
+    Initiate M-Pesa payment
+    ---
+    tags:
+      - Payments
+    security:
+      - Bearer: []
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          required:
+            - tripId
+            - phone
+            - amount
+          properties:
+            tripId:
+              type: string
+              example: "1"
+            phone:
+              type: string
+              example: "+254712345678"
+            amount:
+              type: number
+              example: 250
+    responses:
+      200:
+        description: STK Push sent successfully
+      400:
+        description: Validation error
+      404:
+        description: Trip not found
+    """
     try:
         user_id = get_jwt_identity()
         data = request.json
@@ -200,7 +251,25 @@ def initiate_payment():
 @payments_bp.route('/status/<payment_id>', methods=['GET'])
 @jwt_required()
 def check_payment_status(payment_id):
-    """Check payment status"""
+    """
+    Check payment status
+    ---
+    tags:
+      - Payments
+    security:
+      - Bearer: []
+    parameters:
+      - name: payment_id
+        in: path
+        type: string
+        required: true
+        description: Payment ID
+    responses:
+      200:
+        description: Payment status retrieved successfully
+      404:
+        description: Payment not found
+    """
     try:
         payment = Payment.query.get(payment_id)
         
@@ -272,7 +341,19 @@ def check_payment_status(payment_id):
 @payments_bp.route('', methods=['GET'])
 @jwt_required()
 def get_payments():
-    """Get user payments"""
+    """
+    Get user payments
+    ---
+    tags:
+      - Payments
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Payments retrieved successfully
+      500:
+        description: Server error
+    """
     try:
         user_id = get_jwt_identity()
         

@@ -7,7 +7,19 @@ users_bp = Blueprint('users', __name__)
 @users_bp.route('/profile', methods=['GET'])
 @jwt_required()
 def get_user_profile():
-    """Get user profile"""
+    """
+    Get user profile
+    ---
+    tags:
+      - Users
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: User profile retrieved successfully
+      404:
+        description: User not found
+    """
     try:
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
@@ -38,7 +50,34 @@ def get_user_profile():
 @users_bp.route('/profile', methods=['PUT'])
 @jwt_required()
 def update_user_profile():
-    """Update user profile"""
+    """
+    Update user profile
+    ---
+    tags:
+      - Users
+    security:
+      - Bearer: []
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+              example: "John Doe"
+            phone:
+              type: string
+              example: "+254712345678"
+    responses:
+      200:
+        description: Profile updated successfully
+      404:
+        description: User not found
+      409:
+        description: Phone number already in use
+    """
     try:
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
