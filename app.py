@@ -1,7 +1,6 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
-from swagger_config import swagger_bp, api
 import os
 
 # Initialize extensions
@@ -85,12 +84,6 @@ def create_app():
     from routes.migrate import migrate_bp
     app.register_blueprint(migrate_bp, url_prefix='/api/v1/migrate')
     
-    # Swagger API documentation
-    app.register_blueprint(swagger_bp, url_prefix='/api/v1')
-    
-    # Import Swagger routes to register them
-    import routes.swagger_routes
-    
     # Health check endpoint
     @app.route('/api/v1/health')
     def health_check():
@@ -99,13 +92,40 @@ def create_app():
             'version': '1.0.0'
         }), 200
     
-    # Swagger UI redirect
+    # API documentation endpoint
     @app.route('/')
-    def swagger_redirect():
+    def api_docs():
         return jsonify({
-            'message': 'SafeDrive API',
-            'documentation': '/api/v1/docs/',
-            'version': '1.0.0'
+            'message': 'SafeDrive API v1.0',
+            'documentation': 'https://github.com/koriMK/safedrive-backend/blob/main/API_DOCUMENTATION.md',
+            'base_url': '/api/v1',
+            'endpoints': {
+                'auth': {
+                    'login': 'POST /api/v1/auth/login',
+                    'register': 'POST /api/v1/auth/register',
+                    'profile': 'GET /api/v1/auth/me'
+                },
+                'trips': {
+                    'create': 'POST /api/v1/trips',
+                    'list': 'GET /api/v1/trips',
+                    'available': 'GET /api/v1/trips/available',
+                    'accept': 'PUT /api/v1/trips/{id}/accept',
+                    'complete': 'PUT /api/v1/trips/{id}/complete'
+                },
+                'payments': {
+                    'initiate': 'POST /api/v1/payments/initiate',
+                    'status': 'GET /api/v1/payments/status/{id}'
+                },
+                'drivers': {
+                    'profile': 'GET /api/v1/drivers/profile',
+                    'upload': 'POST /api/v1/drivers/upload-document',
+                    'earnings': 'GET /api/v1/drivers/earnings'
+                },
+                'admin': {
+                    'stats': 'GET /api/v1/admin/stats'
+                }
+            },
+            'authentication': 'Bearer JWT token required for protected endpoints'
         }), 200
     
     # Global error handlers
