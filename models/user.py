@@ -12,7 +12,23 @@ class User(db.Model):
     name = db.Column(db.String(255), nullable=False, index=True)  # Add index for search
     phone = db.Column(db.String(20), unique=True, nullable=True, index=True)
     role = db.Column(db.String(20), nullable=False, index=True)  # passenger, driver, admin
+    
+    # Profile fields
+    profile_picture = db.Column(db.String(500))  # Profile image path
+    date_of_birth = db.Column(db.Date)
+    gender = db.Column(db.String(10))  # male, female, other
+    
+    # Location
+    current_lat = db.Column(db.Numeric(10, 8))
+    current_lng = db.Column(db.Numeric(11, 8))
+    
+    # Status
+    is_active = db.Column(db.Boolean, default=True)
+    email_verified = db.Column(db.Boolean, default=False)
+    phone_verified = db.Column(db.Boolean, default=False)
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)  # Add index for sorting
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     def set_password(self, password):
         """Hash and set password"""
@@ -30,5 +46,16 @@ class User(db.Model):
             'name': self.name,
             'phone': self.phone,
             'role': self.role,
-            'createdAt': self.created_at.isoformat()
+            'profilePicture': self.profile_picture,
+            'dateOfBirth': self.date_of_birth.isoformat() if self.date_of_birth else None,
+            'gender': self.gender,
+            'currentLocation': {
+                'lat': float(self.current_lat) if self.current_lat else None,
+                'lng': float(self.current_lng) if self.current_lng else None
+            } if self.current_lat and self.current_lng else None,
+            'isActive': self.is_active,
+            'emailVerified': self.email_verified,
+            'phoneVerified': self.phone_verified,
+            'createdAt': self.created_at.isoformat(),
+            'updatedAt': self.updated_at.isoformat()
         }
