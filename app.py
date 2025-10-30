@@ -25,10 +25,31 @@ def create_app():
          allow_headers=["Content-Type", "Authorization"],
          methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
     
-    # Create tables
+    # Create tables and handle migrations
     with app.app_context():
         try:
             db.create_all()
+            
+            # Handle database migrations for existing databases
+            try:
+                from sqlalchemy import text
+                # Check if new columns exist
+                result = db.engine.execute(text("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'users' AND column_name IN ('is_online', 'last_seen');
+                """))
+                existing_columns = [row[0] for row in result]
+                
+                # Add missing columns
+                if 'is_online' not in existing_columns:
+                    db.engine.execute(text("ALTER TABLE users ADD COLUMN is_online BOOLEAN DEFAULT FALSE;"))
+                
+                if 'last_seen' not in existing_columns:
+                    db.engine.execute(text("ALTER TABLE users ADD COLUMN last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP;"))
+            except Exception:
+                pass  # Ignore migration errors for SQLite or if columns already exist
+            
             # Only seed if config table is empty (first run)
             from models import Config
             if Config.query.count() == 0:
