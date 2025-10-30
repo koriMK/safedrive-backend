@@ -32,20 +32,11 @@ class Trip(db.Model):
     rating = db.Column(db.Integer)
     feedback = db.Column(db.Text)
     
-    # Location tracking
-    current_lat = db.Column(db.Numeric(10, 8))  # Driver's current location
-    current_lng = db.Column(db.Numeric(11, 8))
-    
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     accepted_at = db.Column(db.DateTime)
     started_at = db.Column(db.DateTime)
     completed_at = db.Column(db.DateTime)
-    cancelled_at = db.Column(db.DateTime)
-    
-    # Cancellation
-    cancelled_by = db.Column(db.String(50))  # user_id who cancelled
-    cancellation_reason = db.Column(db.String(255))
     
     # Relationships
     passenger = db.relationship('User', foreign_keys=[passenger_id])
@@ -74,15 +65,8 @@ class Trip(db.Model):
             'paymentStatus': self.payment_status,
             'rating': self.rating,
             'feedback': self.feedback,
-            'currentLocation': {
-                'lat': float(self.current_lat) if self.current_lat else None,
-                'lng': float(self.current_lng) if self.current_lng else None
-            } if self.current_lat and self.current_lng else None,
-            'cancelledBy': self.cancelled_by,
-            'cancellationReason': self.cancellation_reason,
             'createdAt': self.created_at.isoformat(),
             'acceptedAt': self.accepted_at.isoformat() if self.accepted_at else None,
             'startedAt': self.started_at.isoformat() if self.started_at else None,
-            'completedAt': self.completed_at.isoformat() if self.completed_at else None,
-            'cancelledAt': self.cancelled_at.isoformat() if self.cancelled_at else None
+            'completedAt': self.completed_at.isoformat() if self.completed_at else None
         }

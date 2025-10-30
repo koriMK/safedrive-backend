@@ -26,19 +26,9 @@ class Driver(db.Model):
     total_trips = db.Column(db.Integer, default=0)
     total_earnings = db.Column(db.Numeric(10, 2), default=0.00)
     
-    # Location tracking
-    current_lat = db.Column(db.Numeric(10, 8))
-    current_lng = db.Column(db.Numeric(11, 8))
-    last_location_update = db.Column(db.DateTime)
-    
-    # Emergency contact
-    emergency_contact_name = db.Column(db.String(255))
-    emergency_contact_phone = db.Column(db.String(20))
-    
     # Status
     status = db.Column(db.String(20), default='pending', nullable=False, index=True)  # pending, approved, suspended
-    is_online = db.Column(db.Boolean, default=False, index=True)  # Add index for online driver queries
-    availability_status = db.Column(db.String(20), default='available')  # available, busy, offline
+    is_online = db.Column(db.Boolean, default=False, index=True)
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
