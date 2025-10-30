@@ -394,4 +394,4 @@ const pollTripStatus = (tripId, callback) => {
 };
 ```
 
-This integration guide provides everything needed to connect your frontend to the SafeDrive backend API.
+This integration guide provides everything needed to connect your frontend to the SafeDrive backend API.(psycopg2.errors.UndefinedColumn) column users.is_online does not exist LINE 1: ...s.phone AS users_phone, users.role AS users_role, users.is_o... ^ [SQL: SELECT users.id AS users_id, users.email AS users_email, users.password_hash AS users_password_hash, users.name AS users_name, users.phone AS users_phone, users.role AS users_role, users.is_online AS users_is_online, users.last_seen AS users_last_seen, users.created_at AS users_created_at FROM users WHERE users.email = %(email_1)s LIMIT %(param_1)s] [parameters: {'email_1': 'passenger6@gmail.com', 'param_1': 1}] (Background on this error at: https://sqlalche.me/e/20/f405)

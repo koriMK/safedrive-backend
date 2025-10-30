@@ -91,13 +91,13 @@ def initiate_payment():
                 }
             }), 400
         
-        # Safety check: Verify trip is completed or in progress
-        if trip.status not in ['accepted', 'driving', 'completed']:
+        # Safety check: Verify trip is ready for payment
+        if trip.status not in ['accepted', 'completed']:
             return jsonify({
                 'success': False,
                 'error': {
                     'code': 'INVALID_TRIP_STATUS',
-                    'message': 'Cannot pay for trip that is not accepted or completed'
+                    'message': 'Trip must be accepted or completed to make payment'
                 }
             }), 400
         
@@ -108,6 +108,17 @@ def initiate_payment():
                 'error': {
                     'code': 'AMOUNT_MISMATCH',
                     'message': f'Payment amount {amount} does not match trip fare {trip.fare}'
+                }
+            }), 400
+        
+        # Safety check: Prevent multiple pending payments for same trip
+        pending_payment = Payment.query.filter_by(trip_id=trip_id, status='pending').first()
+        if pending_payment:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'PAYMENT_IN_PROGRESS',
+                    'message': 'Payment already in progress for this trip'
                 }
             }), 400
         
@@ -127,17 +138,6 @@ def initiate_payment():
                 'error': {
                     'code': 'MPESA_FAILED',
                     'message': f'M-Pesa payment failed: {error_msg}'
-                }
-            }), 400
-        
-        # Safety check: Prevent multiple pending payments for same trip
-        pending_payment = Payment.query.filter_by(trip_id=trip_id, status='pending').first()
-        if pending_payment:
-            return jsonify({
-                'success': False,
-                'error': {
-                    'code': 'PAYMENT_IN_PROGRESS',
-                    'message': 'Payment already in progress for this trip'
                 }
             }), 400
         
