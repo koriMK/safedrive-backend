@@ -30,10 +30,10 @@ def create_app():
         try:
             db.create_all()
             
-            # Handle database migrations for existing databases
+            # Handle database migrations - remove problematic columns
             try:
                 from sqlalchemy import text
-                # Check if new columns exist
+                # Check if problematic columns exist and remove them
                 result = db.engine.execute(text("""
                     SELECT column_name 
                     FROM information_schema.columns 
@@ -41,14 +41,14 @@ def create_app():
                 """))
                 existing_columns = [row[0] for row in result]
                 
-                # Add missing columns
-                if 'is_online' not in existing_columns:
-                    db.engine.execute(text("ALTER TABLE users ADD COLUMN is_online BOOLEAN DEFAULT FALSE;"))
+                # Remove problematic columns
+                if 'is_online' in existing_columns:
+                    db.engine.execute(text("ALTER TABLE users DROP COLUMN is_online;"))
                 
-                if 'last_seen' not in existing_columns:
-                    db.engine.execute(text("ALTER TABLE users ADD COLUMN last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP;"))
+                if 'last_seen' in existing_columns:
+                    db.engine.execute(text("ALTER TABLE users DROP COLUMN last_seen;"))
             except Exception:
-                pass  # Ignore migration errors for SQLite or if columns already exist
+                pass  # Ignore migration errors for SQLite or if columns don't exist
             
             # Only seed if config table is empty (first run)
             from models import Config
@@ -72,6 +72,10 @@ def create_app():
     app.register_blueprint(drivers_bp, url_prefix='/api/v1/drivers')
     app.register_blueprint(payments_bp, url_prefix='/api/v1/payments')
     app.register_blueprint(admin_bp, url_prefix='/api/v1/admin')
+    
+    # Migration endpoint
+    from routes.migrate import migrate_bp
+    app.register_blueprint(migrate_bp, url_prefix='/api/v1/migrate')
     
     # Health check endpoint
     @app.route('/api/v1/health')
