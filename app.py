@@ -78,40 +78,21 @@ def create_app():
     
     Swagger(app, config=swagger_config, template=swagger_template)
     
-    # Create tables and handle migrations
+    # Simplified database initialization for faster startup
     with app.app_context():
         try:
             db.create_all()
             
-            # Handle database migrations - remove problematic columns
-            try:
-                with db.engine.connect() as conn:
-                    # Check if problematic columns exist and remove them
-                    result = conn.execute(db.text("""
-                        SELECT column_name 
-                        FROM information_schema.columns 
-                        WHERE table_name = 'users' AND column_name IN ('is_online', 'last_seen');
-                    """))
-                    existing_columns = [row[0] for row in result]
-                    
-                    # Remove problematic columns
-                    if 'is_online' in existing_columns:
-                        conn.execute(db.text("ALTER TABLE users DROP COLUMN is_online;"))
-                        conn.commit()
-                    
-                    if 'last_seen' in existing_columns:
-                        conn.execute(db.text("ALTER TABLE users DROP COLUMN last_seen;"))
-                        conn.commit()
-            except Exception:
-                pass  # Ignore migration errors for SQLite or if columns don't exist
-            
-            # Only seed if config table is empty (first run)
+            # Quick config seeding without heavy operations
             from models import Config
             if Config.query.count() == 0:
-                from seed_config import run_seeds
-                run_seeds()
+                try:
+                    from seed_config import run_seeds
+                    run_seeds()
+                except Exception:
+                    pass  # Skip seeding if it fails
         except Exception:
-            pass
+            pass  # Continue even if DB setup fails
     
     # Register blueprints
     from routes.auth import auth_bp
