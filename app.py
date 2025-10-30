@@ -1,6 +1,7 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
+from swagger_config import swagger_bp, api
 import os
 
 # Initialize extensions
@@ -84,11 +85,26 @@ def create_app():
     from routes.migrate import migrate_bp
     app.register_blueprint(migrate_bp, url_prefix='/api/v1/migrate')
     
+    # Swagger API documentation
+    app.register_blueprint(swagger_bp, url_prefix='/api/v1')
+    
+    # Import Swagger routes to register them
+    import routes.swagger_routes
+    
     # Health check endpoint
     @app.route('/api/v1/health')
     def health_check():
         return jsonify({
             'status': 'healthy',
+            'version': '1.0.0'
+        }), 200
+    
+    # Swagger UI redirect
+    @app.route('/')
+    def swagger_redirect():
+        return jsonify({
+            'message': 'SafeDrive API',
+            'documentation': '/api/v1/docs/',
             'version': '1.0.0'
         }), 200
     
