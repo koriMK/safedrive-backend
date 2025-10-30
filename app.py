@@ -34,9 +34,8 @@ def create_app():
     # Swagger disabled for faster deployment
     # Will re-enable after successful deployment
     
-    # Minimal database setup for deployment
-    @app.before_first_request
-    def setup_database():
+    # Database setup
+    with app.app_context():
         try:
             db.create_all()
         except Exception:
