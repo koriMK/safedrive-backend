@@ -20,13 +20,13 @@ class Trip(db.Model):
     dropoff_address = db.Column(db.String(500), nullable=False)
     
     # Trip details
-    status = db.Column(db.String(20), default='requested', nullable=False)
+    status = db.Column(db.String(20), default='requested', nullable=False, index=True)  # Add index for filtering
     fare = db.Column(db.Numeric(10, 2), nullable=False)
     distance = db.Column(db.Numeric(10, 2), nullable=False)  # km
     duration = db.Column(db.Integer, nullable=False)  # minutes
     
     # Payment
-    payment_status = db.Column(db.String(20), default='pending', nullable=False)
+    payment_status = db.Column(db.String(20), default='pending', nullable=False, index=True)  # Add index for filtering
     
     # Rating
     rating = db.Column(db.Integer)

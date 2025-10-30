@@ -27,8 +27,8 @@ class Driver(db.Model):
     total_earnings = db.Column(db.Numeric(10, 2), default=0.00)
     
     # Status
-    status = db.Column(db.String(20), default='pending', nullable=False)  # pending, approved, suspended
-    is_online = db.Column(db.Boolean, default=False)
+    status = db.Column(db.String(20), default='pending', nullable=False, index=True)  # pending, approved, suspended
+    is_online = db.Column(db.Boolean, default=False, index=True)  # Add index for online driver queries
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

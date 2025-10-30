@@ -5,14 +5,32 @@ from models import Config
 
 class MpesaService:
     def __init__(self):
-        self.consumer_key = Config.get_value('MPESA_CONSUMER_KEY', 'UnDvUCktXcQDyRScx0uAnJlA7rboMWhSnAxvhSOYQiX8QU0t')
-        self.consumer_secret = Config.get_value('MPESA_CONSUMER_SECRET', 'eP7nwvhM3OwL0nVhRlOCsGnRawPi32BkENmT33NygDpdYdq5sy1WyAshdCnidCkb')
-        self.business_shortcode = Config.get_value('MPESA_BUSINESS_SHORTCODE', '174379')
-        self.passkey = Config.get_value('MPESA_PASSKEY', 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919')
-        self.base_url = Config.get_value('MPESA_BASE_URL', 'https://sandbox.safaricom.co.ke')
+        try:
+            self.consumer_key = Config.get_value('MPESA_CONSUMER_KEY', 'UnDvUCktXcQDyRScx0uAnJlA7rboMWhSnAxvhSOYQiX8QU0t')
+            self.consumer_secret = Config.get_value('MPESA_CONSUMER_SECRET', 'eP7nwvhM3OwL0nVhRlOCsGnRawPi32BkENmT33NygDpdYdq5sy1WyAshdCnidCkb')
+            self.business_shortcode = Config.get_value('MPESA_BUSINESS_SHORTCODE', '174379')
+            self.passkey = Config.get_value('MPESA_PASSKEY', 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919')
+            self.base_url = Config.get_value('MPESA_BASE_URL', 'https://sandbox.safaricom.co.ke')
+        except Exception:
+            # Fallback to environment variables
+            import os
+            self.consumer_key = os.environ.get('MPESA_CONSUMER_KEY', 'UnDvUCktXcQDyRScx0uAnJlA7rboMWhSnAxvhSOYQiX8QU0t')
+            self.consumer_secret = os.environ.get('MPESA_CONSUMER_SECRET', 'eP7nwvhM3OwL0nVhRlOCsGnRawPi32BkENmT33NygDpdYdq5sy1WyAshdCnidCkb')
+            self.business_shortcode = os.environ.get('MPESA_BUSINESS_SHORTCODE', '174379')
+            self.passkey = os.environ.get('MPESA_PASSKEY', 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919')
+            self.base_url = os.environ.get('MPESA_BASE_URL', 'https://sandbox.safaricom.co.ke')
+        
+        # Token caching
+        self._cached_token = None
+        self._token_expires = None
         
     def get_access_token(self):
-        """Get OAuth access token"""
+        """Get OAuth access token with caching"""
+        # Check cached token
+        if self._cached_token and self._token_expires:
+            if datetime.now() < self._token_expires:
+                return self._cached_token
+        
         try:
             url = f"{self.base_url}/oauth/v1/generate?grant_type=client_credentials"
             
@@ -23,7 +41,16 @@ class MpesaService:
             response = requests.get(url, headers=headers, timeout=10)
             
             if response.status_code == 200:
-                return response.json().get("access_token")
+                token_data = response.json()
+                access_token = token_data.get("access_token")
+                expires_in = token_data.get("expires_in", 3600)  # Default 1 hour
+                
+                # Cache token
+                self._cached_token = access_token
+                from datetime import timedelta
+                self._token_expires = datetime.now() + timedelta(seconds=expires_in - 60)  # 1 min buffer
+                
+                return access_token
             return None
                 
         except Exception:

@@ -32,8 +32,10 @@ def get_available_trips():
                 }
             }), 403
         
-        # Get trips with status 'requested'
-        trips = Trip.query.filter_by(status='requested').order_by(Trip.created_at.desc()).all()
+        # Get trips with status 'requested' with optimization
+        trips = Trip.query.options(
+            db.joinedload(Trip.passenger)
+        ).filter_by(status='requested').order_by(Trip.created_at.desc()).limit(20).all()
         
         return jsonify({
             'success': True,
@@ -173,13 +175,19 @@ def update_driver_profile():
             driver = Driver(user_id=user_id)
             db.session.add(driver)
         
-        # Update vehicle information
+        # Update vehicle information with validation
         if vehicle:
-            driver.vehicle_make = vehicle.get('make', driver.vehicle_make)
-            driver.vehicle_model = vehicle.get('model', driver.vehicle_model)
+            # Sanitize and validate inputs
+            make = str(vehicle.get('make', driver.vehicle_make or ''))[:100]
+            model = str(vehicle.get('model', driver.vehicle_model or ''))[:100]
+            plate = str(vehicle.get('plate', driver.vehicle_plate or ''))[:20]
+            color = str(vehicle.get('color', driver.vehicle_color or ''))[:50]
+            
+            driver.vehicle_make = make.strip() if make else driver.vehicle_make
+            driver.vehicle_model = model.strip() if model else driver.vehicle_model
             driver.vehicle_year = vehicle.get('year', driver.vehicle_year)
-            driver.vehicle_plate = vehicle.get('plate', driver.vehicle_plate)
-            driver.vehicle_color = vehicle.get('color', driver.vehicle_color)
+            driver.vehicle_plate = plate.strip().upper() if plate else driver.vehicle_plate
+            driver.vehicle_color = color.strip() if color else driver.vehicle_color
         
         driver.updated_at = datetime.utcnow()
         db.session.commit()
@@ -251,10 +259,20 @@ def upload_document():
             # Create upload directory if it doesn't exist
             os.makedirs(UPLOAD_FOLDER, exist_ok=True)
             
-            # Generate unique filename
+            # Generate secure unique filename
             ext = file.filename.rsplit('.', 1)[1].lower()
             filename = f"{user_id}_{document_type}_{uuid.uuid4().hex[:8]}.{ext}"
             filepath = os.path.join(UPLOAD_FOLDER, filename)
+            
+            # Validate file path is within upload directory
+            if not os.path.abspath(filepath).startswith(os.path.abspath(UPLOAD_FOLDER)):
+                return jsonify({
+                    'success': False,
+                    'error': {
+                        'code': 'INVALID_PATH',
+                        'message': 'Invalid file path'
+                    }
+                }), 400
             
             # Save file
             file.save(filepath)

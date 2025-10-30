@@ -14,6 +14,11 @@ def create_app():
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', f'sqlite:///{os.path.join(os.path.dirname(os.path.abspath(__file__)), "safedrive.db")}')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,
+        'pool_recycle': 300,
+        'connect_args': {'check_same_thread': False} if 'sqlite' in os.environ.get('DATABASE_URL', '') else {}
+    }
     app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'jwt-secret-key-change-in-production')
     
     # Initialize extensions
@@ -32,21 +37,23 @@ def create_app():
             
             # Handle database migrations - remove problematic columns
             try:
-                from sqlalchemy import text
-                # Check if problematic columns exist and remove them
-                result = db.engine.execute(text("""
-                    SELECT column_name 
-                    FROM information_schema.columns 
-                    WHERE table_name = 'users' AND column_name IN ('is_online', 'last_seen');
-                """))
-                existing_columns = [row[0] for row in result]
-                
-                # Remove problematic columns
-                if 'is_online' in existing_columns:
-                    db.engine.execute(text("ALTER TABLE users DROP COLUMN is_online;"))
-                
-                if 'last_seen' in existing_columns:
-                    db.engine.execute(text("ALTER TABLE users DROP COLUMN last_seen;"))
+                with db.engine.connect() as conn:
+                    # Check if problematic columns exist and remove them
+                    result = conn.execute(db.text("""
+                        SELECT column_name 
+                        FROM information_schema.columns 
+                        WHERE table_name = 'users' AND column_name IN ('is_online', 'last_seen');
+                    """))
+                    existing_columns = [row[0] for row in result]
+                    
+                    # Remove problematic columns
+                    if 'is_online' in existing_columns:
+                        conn.execute(db.text("ALTER TABLE users DROP COLUMN is_online;"))
+                        conn.commit()
+                    
+                    if 'last_seen' in existing_columns:
+                        conn.execute(db.text("ALTER TABLE users DROP COLUMN last_seen;"))
+                        conn.commit()
             except Exception:
                 pass  # Ignore migration errors for SQLite or if columns don't exist
             

@@ -55,12 +55,19 @@ def create_trip():
             float(dropoff['lat']), float(dropoff['lng'])
         )
         
-        # Calculate fare using config
+        # Calculate fare using cached config values
         try:
             from models import Config
-            BASE_FARE = float(Config.get_value('TRIP_BASE_FARE', '200'))
-            RATE_PER_KM = float(Config.get_value('TRIP_RATE_PER_KM', '50'))
-            AVERAGE_SPEED = float(Config.get_value('TRIP_AVERAGE_SPEED', '30'))
+            # Cache config values to avoid repeated DB queries
+            if not hasattr(create_trip, '_config_cache'):
+                create_trip._config_cache = {
+                    'BASE_FARE': float(Config.get_value('TRIP_BASE_FARE', '200')),
+                    'RATE_PER_KM': float(Config.get_value('TRIP_RATE_PER_KM', '50')),
+                    'AVERAGE_SPEED': float(Config.get_value('TRIP_AVERAGE_SPEED', '30'))
+                }
+            BASE_FARE = create_trip._config_cache['BASE_FARE']
+            RATE_PER_KM = create_trip._config_cache['RATE_PER_KM']
+            AVERAGE_SPEED = create_trip._config_cache['AVERAGE_SPEED']
         except:
             BASE_FARE = 200
             RATE_PER_KM = 50
@@ -130,8 +137,11 @@ def get_trips():
         if status:
             query = query.filter_by(status=status)
         
-        # Get trips
-        trips = query.order_by(Trip.created_at.desc()).limit(limit).offset((page-1)*limit).all()
+        # Get trips with eager loading for better performance
+        trips = query.options(
+            db.joinedload(Trip.passenger),
+            db.joinedload(Trip.driver)
+        ).order_by(Trip.created_at.desc()).limit(limit).offset((page-1)*limit).all()
         total = query.count()
         
         return jsonify({
@@ -304,7 +314,7 @@ def rate_trip(trip_id):
         if trip.driver_id:
             driver = Driver.query.filter_by(user_id=trip.driver_id).first()
             if driver:
-                # Calculate new average rating
+                # Calculate new average rating efficiently
                 avg_rating = db.session.query(db.func.avg(Trip.rating)).filter(
                     Trip.driver_id == trip.driver_id,
                     Trip.rating.isnot(None)
@@ -347,8 +357,10 @@ def get_available_trips():
                 }
             }), 403
         
-        # Get trips that are requested and not assigned
-        trips = Trip.query.filter_by(status='requested', driver_id=None).order_by(Trip.created_at.desc()).all()
+        # Get trips that are requested and not assigned with optimization
+        trips = Trip.query.options(
+            db.joinedload(Trip.passenger)
+        ).filter_by(status='requested', driver_id=None).order_by(Trip.created_at.desc()).limit(20).all()
         
         return jsonify({
             'success': True,
