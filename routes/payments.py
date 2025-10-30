@@ -114,21 +114,48 @@ def initiate_payment():
                 }
             }), 400
         
+        # Validate and format phone number
+        formatted_phone = phone.strip()
+        if formatted_phone.startswith('+254'):
+            formatted_phone = formatted_phone[1:]  # Remove +
+        elif formatted_phone.startswith('0'):
+            formatted_phone = '254' + formatted_phone[1:]  # Replace 0 with 254
+        elif not formatted_phone.startswith('254'):
+            formatted_phone = '254' + formatted_phone
+        
+        # Validate phone number format
+        if not formatted_phone.isdigit() or len(formatted_phone) != 12:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'INVALID_PHONE',
+                    'message': 'Invalid phone number format. Use format: +254712345678'
+                }
+            }), 400
+        
         # Initialize M-Pesa service and initiate STK Push
-        mpesa = MpesaService()
-        stk_result = mpesa.stk_push(
-            phone_number=phone,
-            amount=amount,
-            account_reference=f'Trip{trip_id}',
-            transaction_desc=f'Payment for trip'
-        )
+        try:
+            mpesa = MpesaService()
+            stk_result = mpesa.stk_push(
+                phone_number=formatted_phone,
+                amount=int(float(amount)),  # Ensure amount is integer
+                account_reference=f'Trip{trip_id}',
+                transaction_desc=f'SafeDrive Trip Payment'
+            )
+        except Exception as mpesa_error:
+            # Log the error and use mock payment for demo
+            print(f"M-Pesa error: {mpesa_error}")
+            stk_result = {
+                'success': False,
+                'error': str(mpesa_error)
+            }
         
         # If M-Pesa fails, use mock payment for demo
         if not stk_result.get('success'):
             stk_result = {
                 'success': True,
                 'checkout_request_id': f'mock_{uuid.uuid4().hex[:12]}',
-                'response_description': 'Mock payment initiated for demo'
+                'response_description': 'Mock payment initiated for demo (M-Pesa unavailable)'
             }
         
         # Create payment record

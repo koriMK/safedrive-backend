@@ -64,18 +64,35 @@ class MpesaService:
     def stk_push(self, phone_number, amount, account_reference, transaction_desc):
         """Initiate STK Push payment"""
         try:
+            # Validate inputs
+            if not phone_number or not amount:
+                return {"success": False, "error": "Phone number and amount are required"}
+            
+            # Validate phone number format
+            if not str(phone_number).isdigit() or len(str(phone_number)) not in [9, 10, 12]:
+                return {"success": False, "error": "Invalid phone number format"}
+            
             access_token = self.get_access_token()
             if not access_token:
-                return {"success": False, "error": "Failed to get access token"}
+                return {"success": False, "error": "Failed to get M-Pesa access token"}
             
             timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
             password = self.generate_password(timestamp)
             
-            # Format phone number
-            if phone_number.startswith('+'):
-                phone_number = phone_number[1:]
-            if phone_number.startswith('0'):
-                phone_number = '254' + phone_number[1:]
+            # Format phone number properly
+            phone_str = str(phone_number)
+            if phone_str.startswith('+254'):
+                phone_str = phone_str[4:]  # Remove +254
+            elif phone_str.startswith('254'):
+                phone_str = phone_str[3:]  # Remove 254
+            elif phone_str.startswith('0'):
+                phone_str = phone_str[1:]  # Remove 0
+            
+            # Ensure we have 9 digits and add 254
+            if len(phone_str) == 9:
+                formatted_phone = f"254{phone_str}"
+            else:
+                return {"success": False, "error": "Invalid phone number length"}
             
             url = f"{self.base_url}/mpesa/stkpush/v1/processrequest"
             
@@ -90,13 +107,15 @@ class MpesaService:
                 "Timestamp": timestamp,
                 "TransactionType": "CustomerPayBillOnline",
                 "Amount": int(amount),
-                "PartyA": phone_number,
+                "PartyA": formatted_phone,
                 "PartyB": self.business_shortcode,
-                "PhoneNumber": phone_number,
+                "PhoneNumber": formatted_phone,
                 "CallBackURL": Config.get_value('MPESA_CALLBACK_URL', 'https://safedrive-backend-d579.onrender.com/api/v1/payments/callback'),
                 "AccountReference": account_reference,
                 "TransactionDesc": transaction_desc
             }
+            
+            print(f"M-Pesa STK Push payload: {payload}")  # Debug log
             
             response = requests.post(url, json=payload, headers=headers, timeout=30)
             

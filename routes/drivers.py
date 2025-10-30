@@ -256,26 +256,62 @@ def upload_document():
             }), 400
         
         if file and allowed_file(file.filename):
-            # Create upload directory if it doesn't exist
-            os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-            
-            # Generate secure unique filename
-            ext = file.filename.rsplit('.', 1)[1].lower()
-            filename = f"{user_id}_{document_type}_{uuid.uuid4().hex[:8]}.{ext}"
-            filepath = os.path.join(UPLOAD_FOLDER, filename)
-            
-            # Validate file path is within upload directory
-            if not os.path.abspath(filepath).startswith(os.path.abspath(UPLOAD_FOLDER)):
+            try:
+                # Create upload directory if it doesn't exist
+                os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+                
+                # Validate file size (max 5MB)
+                file.seek(0, os.SEEK_END)
+                file_size = file.tell()
+                file.seek(0)
+                
+                if file_size > 5 * 1024 * 1024:  # 5MB limit
+                    return jsonify({
+                        'success': False,
+                        'error': {
+                            'code': 'FILE_TOO_LARGE',
+                            'message': 'File size must be less than 5MB'
+                        }
+                    }), 400
+                
+                # Generate secure unique filename
+                ext = file.filename.rsplit('.', 1)[1].lower()
+                filename = f"{user_id}_{document_type}_{uuid.uuid4().hex[:8]}.{ext}"
+                filepath = os.path.join(UPLOAD_FOLDER, filename)
+                
+                # Validate file path is within upload directory
+                abs_upload_path = os.path.abspath(UPLOAD_FOLDER)
+                abs_file_path = os.path.abspath(filepath)
+                if not abs_file_path.startswith(abs_upload_path):
+                    return jsonify({
+                        'success': False,
+                        'error': {
+                            'code': 'INVALID_PATH',
+                            'message': 'Invalid file path'
+                        }
+                    }), 400
+                
+                # Save file
+                file.save(filepath)
+                
+                # Verify file was saved successfully
+                if not os.path.exists(filepath):
+                    return jsonify({
+                        'success': False,
+                        'error': {
+                            'code': 'SAVE_FAILED',
+                            'message': 'Failed to save file'
+                        }
+                    }), 500
+                    
+            except Exception as save_error:
                 return jsonify({
                     'success': False,
                     'error': {
-                        'code': 'INVALID_PATH',
-                        'message': 'Invalid file path'
+                        'code': 'SAVE_ERROR',
+                        'message': f'File save error: {str(save_error)}'
                     }
-                }), 400
-            
-            # Save file
-            file.save(filepath)
+                }), 500
             
             # Update driver profile
             driver = Driver.query.filter_by(user_id=user_id).first()
