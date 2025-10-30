@@ -1,7 +1,7 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
-from flasgger import Swagger
+# from flasgger import Swagger
 import os
 
 # Initialize extensions
@@ -31,68 +31,16 @@ def create_app():
          allow_headers=["Content-Type", "Authorization"],
          methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
     
-    # Initialize Swagger
-    swagger_config = {
-        "headers": [],
-        "specs": [
-            {
-                "endpoint": 'apispec',
-                "route": '/apispec.json',
-                "rule_filter": lambda rule: True,
-                "model_filter": lambda tag: True,
-            }
-        ],
-        "static_url_path": "/flasgger_static",
-        "swagger_ui": True,
-        "specs_route": "/docs/"
-    }
+    # Swagger disabled for faster deployment
+    # Will re-enable after successful deployment
     
-    swagger_template = {
-        "swagger": "2.0",
-        "info": {
-            "title": "SafeDrive API",
-            "description": "Complete REST API for SafeDrive ride-sharing platform",
-            "version": "1.0.0",
-            "contact": {
-                "name": "SafeDrive Team",
-                "email": "support@safedrive.com"
-            }
-        },
-        "host": "safedrive-backend-d579.onrender.com",
-        "basePath": "/api/v1",
-        "schemes": ["https", "http"],
-        "securityDefinitions": {
-            "Bearer": {
-                "type": "apiKey",
-                "name": "Authorization",
-                "in": "header",
-                "description": "JWT Authorization header using the Bearer scheme. Example: 'Authorization: Bearer {token}'"
-            }
-        },
-        "security": [
-            {
-                "Bearer": []
-            }
-        ]
-    }
-    
-    Swagger(app, config=swagger_config, template=swagger_template)
-    
-    # Simplified database initialization for faster startup
-    with app.app_context():
+    # Minimal database setup for deployment
+    @app.before_first_request
+    def setup_database():
         try:
             db.create_all()
-            
-            # Quick config seeding without heavy operations
-            from models import Config
-            if Config.query.count() == 0:
-                try:
-                    from seed_config import run_seeds
-                    run_seeds()
-                except Exception:
-                    pass  # Skip seeding if it fails
         except Exception:
-            pass  # Continue even if DB setup fails
+            pass
     
     # Register blueprints
     from routes.auth import auth_bp
