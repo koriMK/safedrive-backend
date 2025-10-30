@@ -22,7 +22,58 @@ def calculate_distance(lat1, lon1, lat2, lon2):
 @trips_bp.route('', methods=['POST'])
 @jwt_required()
 def create_trip():
-    """Create new trip request"""
+    """
+    Create new trip request
+    ---
+    tags:
+      - Trips
+    security:
+      - Bearer: []
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          required:
+            - pickup
+            - dropoff
+          properties:
+            pickup:
+              type: object
+              properties:
+                lat:
+                  type: number
+                  example: -1.2921
+                lng:
+                  type: number
+                  example: 36.8219
+                address:
+                  type: string
+                  example: "Nairobi CBD"
+            dropoff:
+              type: object
+              properties:
+                lat:
+                  type: number
+                  example: -1.3032
+                lng:
+                  type: number
+                  example: 36.8856
+                address:
+                  type: string
+                  example: "Westlands"
+            notifyDrivers:
+              type: boolean
+              example: true
+    responses:
+      201:
+        description: Trip created successfully
+      400:
+        description: Validation error
+      403:
+        description: Unauthorized - Only passengers can request trips
+    """
     try:
         user_id = get_jwt_identity()
         user = User.query.get(user_id)

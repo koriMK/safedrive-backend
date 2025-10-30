@@ -17,7 +17,45 @@ def validate_phone(phone):
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
-    """Register new user"""
+    """
+    Register new user
+    ---
+    tags:
+      - Authentication
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          required:
+            - name
+            - email
+            - password
+            - role
+          properties:
+            name:
+              type: string
+              example: "John Doe"
+            email:
+              type: string
+              example: "john@example.com"
+            password:
+              type: string
+              example: "password123"
+            phone:
+              type: string
+              example: "+254712345678"
+            role:
+              type: string
+              enum: ["passenger", "driver"]
+              example: "passenger"
+    responses:
+      201:
+        description: User registered successfully
+      400:
+        description: Validation error
+    """
     try:
         data = request.json
         
@@ -148,7 +186,33 @@ def register():
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    """Login user"""
+    """
+    Login user
+    ---
+    tags:
+      - Authentication
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          required:
+            - email
+            - password
+          properties:
+            email:
+              type: string
+              example: "john@example.com"
+            password:
+              type: string
+              example: "password123"
+    responses:
+      200:
+        description: Login successful
+      401:
+        description: Invalid credentials
+    """
     try:
         data = request.json
         
@@ -197,7 +261,21 @@ def login():
 @auth_bp.route('/me', methods=['GET'])
 @jwt_required()
 def get_current_user():
-    """Get current user profile"""
+    """
+    Get current user profile
+    ---
+    tags:
+      - Authentication
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: User profile retrieved
+      401:
+        description: Unauthorized
+      404:
+        description: User not found
+    """
     try:
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
