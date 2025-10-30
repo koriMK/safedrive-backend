@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import User, db
+import math
 
 users_bp = Blueprint('users', __name__)
 
@@ -140,6 +141,22 @@ def get_users():
       - Users
     security:
       - Bearer: []
+    parameters:
+      - name: role
+        in: query
+        type: string
+        enum: ["passenger", "driver", "admin"]
+        description: Filter by user role
+      - name: page
+        in: query
+        type: integer
+        default: 1
+        description: Page number
+      - name: limit
+        in: query
+        type: integer
+        default: 10
+        description: Items per page
     responses:
       200:
         description: Users retrieved successfully
@@ -159,11 +176,29 @@ def get_users():
                 }
             }), 403
         
-        users = User.query.all()
+        # Apply filters
+        role = request.args.get('role')
+        page = request.args.get('page', 1, type=int)
+        limit = request.args.get('limit', 10, type=int)
+        
+        query = User.query
+        if role:
+            query = query.filter_by(role=role)
+        
+        users = query.order_by(User.created_at.desc()).limit(limit).offset((page-1)*limit).all()
+        total = query.count()
         
         return jsonify({
             'success': True,
-            'data': [user.to_dict() for user in users]
+            'data': {
+                'users': [user.to_dict() for user in users],
+                'pagination': {
+                    'page': page,
+                    'limit': limit,
+                    'total': total,
+                    'pages': math.ceil(total / limit)
+                }
+            }
         }), 200
         
     except Exception as e:

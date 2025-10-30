@@ -761,3 +761,80 @@ def delete_driver(driver_id):
                 'message': str(e)
             }
         }), 500
+
+@drivers_bp.route('/<driver_id>/stats', methods=['GET'])
+@jwt_required()
+def get_driver_stats(driver_id):
+    """
+    Get driver statistics
+    ---
+    tags:
+      - Drivers
+    security:
+      - Bearer: []
+    parameters:
+      - name: driver_id
+        in: path
+        type: string
+        required: true
+        description: Driver ID
+    responses:
+      200:
+        description: Driver statistics retrieved successfully
+      403:
+        description: Admin access required
+      404:
+        description: Driver not found
+    """
+    try:
+        current_user_id = get_jwt_identity()
+        current_user = User.query.get(current_user_id)
+        
+        if current_user.role != 'admin':
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'ADMIN_REQUIRED',
+                    'message': 'Admin access required'
+                }
+            }), 403
+        
+        driver = Driver.query.get(driver_id)
+        if not driver:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'NOT_FOUND',
+                    'message': 'Driver not found'
+                }
+            }), 404
+        
+        # Get today's stats
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_trips = Trip.query.filter(
+            Trip.driver_id == driver.user_id,
+            Trip.status == 'completed',
+            Trip.completed_at >= today_start
+        ).all()
+        
+        today_earnings = sum(float(trip.fare) for trip in today_trips)
+        today_trips_count = len(today_trips)
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'todayEarnings': today_earnings,
+                'todayTrips': today_trips_count,
+                'totalTrips': driver.total_trips,
+                'rating': float(driver.rating) if driver.rating else 0
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'STATS_FAILED',
+                'message': str(e)
+            }
+        }), 500

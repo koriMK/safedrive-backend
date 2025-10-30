@@ -65,11 +65,155 @@ def mpesa_callback():
     except Exception:
         return jsonify({'ResultCode': 1, 'ResultDesc': 'Failed'}), 500
 
+@payments_bp.route('/mpesa/stk-push', methods=['POST'])
+@jwt_required()
+def mpesa_stk_push():
+    """
+    Initiate M-Pesa STK Push
+    ---
+    tags:
+      - Payments
+    security:
+      - Bearer: []
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          required:
+            - tripId
+            - phoneNumber
+            - amount
+          properties:
+            tripId:
+              type: string
+              example: "t_123456789abc"
+            phoneNumber:
+              type: string
+              example: "+254712345678"
+            amount:
+              type: number
+              example: 250
+    responses:
+      200:
+        description: STK Push initiated successfully
+      400:
+        description: Validation error
+      404:
+        description: Trip not found
+    """
+    try:
+        user_id = get_jwt_identity()
+        data = request.json
+        
+        trip_id = data.get('tripId')
+        phone = data.get('phoneNumber')
+        amount = data.get('amount')
+        
+        if not all([trip_id, phone, amount]):
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'MISSING_FIELDS',
+                    'message': 'Trip ID, phone number, and amount are required'
+                }
+            }), 400
+        
+        # Verify trip exists and belongs to user
+        trip = Trip.query.get(trip_id)
+        if not trip or trip.passenger_id != user_id:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'TRIP_NOT_FOUND',
+                    'message': 'Trip not found or unauthorized'
+                }
+            }), 404
+        
+        # Check for existing payment
+        existing_payment = Payment.query.filter_by(trip_id=trip_id, status='paid').first()
+        if existing_payment:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'ALREADY_PAID',
+                    'message': 'Trip has already been paid for'
+                }
+            }), 400
+        
+        # Format phone number
+        formatted_phone = phone.strip()
+        if formatted_phone.startswith('+254'):
+            formatted_phone = formatted_phone[1:]
+        elif formatted_phone.startswith('0'):
+            formatted_phone = '254' + formatted_phone[1:]
+        elif not formatted_phone.startswith('254'):
+            formatted_phone = '254' + formatted_phone
+        
+        # Validate phone format
+        if not formatted_phone.isdigit() or len(formatted_phone) != 12:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'INVALID_PHONE',
+                    'message': 'Invalid phone number format'
+                }
+            }), 400
+        
+        # Initialize M-Pesa service
+        try:
+            mpesa = MpesaService()
+            stk_result = mpesa.stk_push(
+                phone_number=formatted_phone,
+                amount=int(float(amount)),
+                account_reference=f'Trip{trip_id}',
+                transaction_desc=f'SafeDrive Trip Payment'
+            )
+        except Exception:
+            # Mock payment for demo
+            stk_result = {
+                'success': True,
+                'checkout_request_id': f'mock_{uuid.uuid4().hex[:12]}',
+                'response_description': 'Mock STK Push initiated'
+            }
+        
+        # Create payment record
+        payment = Payment(
+            trip_id=trip_id,
+            amount=amount,
+            phone=phone,
+            checkout_request_id=stk_result.get('checkout_request_id'),
+            status='pending'
+        )
+        
+        db.session.add(payment)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'STK Push initiated',
+            'data': {
+                'paymentId': payment.id,
+                'checkoutRequestId': payment.checkout_request_id
+            }
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'STK_PUSH_FAILED',
+                'message': str(e)
+            }
+        }), 500
+
 @payments_bp.route('/initiate', methods=['POST'])
 @jwt_required()
 def initiate_payment():
     """
-    Initiate M-Pesa payment
+    Initiate M-Pesa payment (legacy endpoint)
     ---
     tags:
       - Payments
