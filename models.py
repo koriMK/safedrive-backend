@@ -14,8 +14,6 @@ class User(db.Model):
     name = db.Column(db.String(255), nullable=False)
     phone = db.Column(db.String(20), unique=True, nullable=True, index=True)
     role = db.Column(db.String(20), nullable=False, index=True)  # passenger, driver, admin
-    is_online = db.Column(db.Boolean, default=False)
-    last_seen = db.Column(db.DateTime, default=datetime.utcnow)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     def set_password(self, password):
@@ -34,8 +32,6 @@ class User(db.Model):
             'name': self.name,
             'phone': self.phone,
             'role': self.role,
-            'isOnline': self.is_online,
-            'lastSeen': self.last_seen.isoformat() if self.last_seen else None,
             'createdAt': self.created_at.isoformat()
         }
 

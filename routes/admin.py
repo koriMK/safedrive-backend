@@ -250,34 +250,25 @@ def get_online_users():
                 }
             }), 403
         
-        # Get online users (configurable timeout)
-        try:
-            from models import Config
-            online_timeout = int(Config.get_value('ONLINE_TIMEOUT_MINUTES', '5'))
-        except:
-            online_timeout = 5
-        cutoff_time = datetime.utcnow() - timedelta(minutes=online_timeout)
-        
+        # Get all approved drivers and passengers (simplified)
         online_drivers = db.session.query(User).join(Driver).filter(
             User.role == 'driver',
-            User.last_seen >= cutoff_time,
             Driver.status == 'approved'
         ).all()
         
         online_passengers = User.query.filter(
-            User.role == 'passenger',
-            User.last_seen >= cutoff_time
+            User.role == 'passenger'
         ).all()
         
         return jsonify({
             'success': True,
             'data': {
-                'onlineDrivers': [user.to_dict() for user in online_drivers],
-                'onlinePassengers': [user.to_dict() for user in online_passengers],
+                'drivers': [user.to_dict() for user in online_drivers],
+                'passengers': [user.to_dict() for user in online_passengers],
                 'summary': {
-                    'totalOnlineDrivers': len(online_drivers),
-                    'totalOnlinePassengers': len(online_passengers),
-                    'totalOnlineUsers': len(online_drivers) + len(online_passengers)
+                    'totalDrivers': len(online_drivers),
+                    'totalPassengers': len(online_passengers),
+                    'totalUsers': len(online_drivers) + len(online_passengers)
                 }
             }
         }), 200
