@@ -183,6 +183,11 @@ def register():
                 'message': str(e)
             }
         }), 500
+    finally:
+        try:
+            db.session.close()
+        except:
+            pass
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
@@ -257,6 +262,11 @@ def login():
                 'message': str(e)
             }
         }), 500
+    finally:
+        try:
+            db.session.close()
+        except:
+            pass
 
 @auth_bp.route('/me', methods=['GET'])
 @jwt_required()
@@ -304,3 +314,8 @@ def get_current_user():
                 'message': str(e)
             }
         }), 500
+    finally:
+        try:
+            db.session.close()
+        except:
+            pass
